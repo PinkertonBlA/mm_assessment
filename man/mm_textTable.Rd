@@ -4,7 +4,7 @@
 \alias{mm_textTable}
 \title{Write tables of text}
 \usage{
-mm_textTable(variables, names_, collapse_columns)
+mm_textTable(variables, names_ = variables, collapse_columns = 1)
 }
 \arguments{
 \item{variables}{variables from 'df_responses' data to include in the table single or list}

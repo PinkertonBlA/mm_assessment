@@ -49,6 +49,39 @@ mm_theme <- function() {theme_minimal(base_size = 12) +
 
 ## Tables -----
 
+# Swot by Role
+# *****SWOT ORDER SHOULD END UP GETTING DEFINED IN THE DEFINITIONS SECTION, RIGHT*****
+swot_order <- c("strengths", "weaknesses", "opportunities", "threats", "priorities") # This should come from definitions
+
+#' SWOT Tables
+#'
+#' @param swot_cat_ category of the swot item. strengths, weaknesses, opportunities, threats. Will search for the name in the response variable names.
+swot_by_role<- function(swot_cat_) {
+
+  swot_vars <- names(responses)[which(str_ends(names(responses), "\\d") & str_starts(names(responses), "swot_"))]
+
+  roles_order <- unlist(definitions$options[which(definitions$id=="chamber_roles")][[1]][1])
+
+  swot <-
+    responses %>%
+    select(participant_role, participant_name, swot_vars) %>%
+    mutate(participant_role = ordered(participant_role, levels = roles_order)) %>%
+    pivot_longer(cols = starts_with("swot_"), names_to = "swot", values_to = "swot_char") %>%
+    separate(col = "swot", into = c("swot", "cat", "rank"), sep = "_")
+
+  paste0(
+    htmltools::h2(definitions$text[which(str_detect(definitions$text, str_to_upper(swot_cat_)))][1]),
+    swot %>%
+      filter(cat == swot_cat_) %>%
+      select(-cat, -swot) %>%
+      arrange(participant_role) %>%
+      kable(col.names = c("Role", "Name", "Rank", "Response")) %>%
+      kable_styling() %>%
+      collapse_rows(1:2, valign = "top"),
+    "\\pagebreak"
+  )
+}
+
 #' Write tables of text
 #'
 #' @param variables variables from 'df_responses' data to include in the table single or list
@@ -57,14 +90,13 @@ mm_theme <- function() {theme_minimal(base_size = 12) +
 #'
 #' @return outputs kable table
 #' @examples mm_textTable(c('participant_role', 'participant_name'), c("Role", "Name"), 1)
-mm_textTable <- function(variables, names_, collapse_columns) {
+mm_textTable <- function(variables, names_=variables, collapse_columns=1) {
   df_responses %>%
     select(variables) %>%
     kable(col.names = names_) %>%
     kable_styling() %>%
     collapse_rows(collapse_columns, valign = "top")
 }
-
 
 ## Summary Graphs -----
 
