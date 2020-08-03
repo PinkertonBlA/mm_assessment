@@ -60,7 +60,7 @@ swot_by_role<- function(swot_cat_) {
 
   swot_vars <- names(df_responses)[which(str_ends(names(df_responses), "\\d") & str_starts(names(df_responses), "swot_"))]
 
-  roles_order <- unlist(definitions$options[which(definitions$id=="chamber_roles")][[1]][1])
+  roles_order <- unlist(df_definitions$options[which(df_definitions$id=="chamber_roles")][[1]][1])
 
   swot <-
     df_responses %>%
@@ -70,7 +70,7 @@ swot_by_role<- function(swot_cat_) {
     separate(col = "swot", into = c("swot", "cat", "rank"), sep = "_")
 
   paste0(
-    htmltools::h2(definitions$text[which(str_detect(definitions$text, str_to_upper(swot_cat_)))][1]),
+    htmltools::h2(df_definitions$text[which(str_detect(df_definitions$text, str_to_upper(swot_cat_)))][1]),
     swot %>%
       filter(cat == swot_cat_) %>%
       select(-cat, -swot) %>%
