@@ -58,12 +58,12 @@ swot_order <- c("strengths", "weaknesses", "opportunities", "threats", "prioriti
 #' @param swot_cat_ category of the swot item. strengths, weaknesses, opportunities, threats. Will search for the name in the response variable names.
 swot_by_role<- function(swot_cat_) {
 
-  swot_vars <- names(responses)[which(str_ends(names(responses), "\\d") & str_starts(names(responses), "swot_"))]
+  swot_vars <- names(df_responses)[which(str_ends(names(df_responses), "\\d") & str_starts(names(df_responses), "swot_"))]
 
   roles_order <- unlist(definitions$options[which(definitions$id=="chamber_roles")][[1]][1])
 
   swot <-
-    responses %>%
+    df_responses %>%
     select(participant_role, participant_name, swot_vars) %>%
     mutate(participant_role = ordered(participant_role, levels = roles_order)) %>%
     pivot_longer(cols = starts_with("swot_"), names_to = "swot", values_to = "swot_char") %>%
