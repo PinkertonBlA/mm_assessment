@@ -22,15 +22,15 @@ readin <- function(path="/home/kent/Contracts/missionmet/mm-assessor/survey_monk
   jsonlite::fromJSON(path)
 }
 
-df <- readin()
-
-df_report_format <- df[1]
-
-df_transformations <- df[[3]]
-
-df_definitions <- df[[4]]
-
-df_responses <- df[[6]]
+# df <- readin()
+#
+# df_report_format <- df[1]
+#
+# df_transformations <- df[[3]]
+#
+# df_definitions <- df[[4]]
+#
+# df_responses <- df[[6]]
 
 # Functions -----
 
@@ -112,7 +112,7 @@ mm_textTable <- function(variables, names_=variables, collapse_columns=1) {
 mm_summary_graphs <- function(variables, mean_or_sd = "mean", scale_ = "mm_likert_scale", wrap_ = 30) {
 
   matrix <- variables
-  names(matrix) <- df_definitions$subtext[which(df_definitions$id == variables)] %>%
+  names(matrix) <- df_definitions$subtext[which(df_definitions$id %in% variables)] %>%
     str_wrap(width = wrap_)
 
   scale_lab <- df_definitions$options[which(df_definitions$type == "scale" & df_definitions$id == scale_)][[1]][[1]]
@@ -134,9 +134,6 @@ mm_summary_graphs <- function(variables, mean_or_sd = "mean", scale_ = "mm_liker
       geom_linerange(aes(ymin = min_,
                          ymax = max_), color = "gray") +
       geom_point(aes(y = m_)) +
-      #geom_text(aes(y = m_, label = round(m_, digits = 1), vjust = -0.2, hjust = 1)) +
-      #geom_text(aes(y = min_, label = round(min_, digits = 1), vjust = -0.2, hjust = 0), color = "gray") +
-      #geom_text(aes(y = max_, label = round(max_, digits = 1), vjust = -0.2, hjust = 1), color = "gray") +
       scale_y_continuous(breaks = scale_lab, labels = replace_na(names(scale_lab), "")) +
       mm_theme() +
       theme(panel.grid.major.x = element_line('gray', linetype = 3),
@@ -152,9 +149,6 @@ mm_summary_graphs <- function(variables, mean_or_sd = "mean", scale_ = "mm_liker
       geom_linerange(aes(ymin = min_,
                          ymax = max_), color = "black") +
       geom_point(aes(y = m_), color = "gray") +
-      #geom_text(aes(y = m_, label = round(m_, digits = 1), vjust = -0.2, hjust = 1)) +
-      #geom_text(aes(y = min_, label = round(min_, digits = 1), vjust = -0.2, hjust = 0), color = "gray") +
-      #geom_text(aes(y = max_, label = round(max_, digits = 1), vjust = -0.2, hjust = 1), color = "gray") +
       scale_y_continuous(breaks = scale_lab, labels = replace_na(names(scale_lab), "")) +
       mm_theme() +
       theme(panel.grid.major.x = element_line('gray', linetype = 3),
@@ -164,6 +158,8 @@ mm_summary_graphs <- function(variables, mean_or_sd = "mean", scale_ = "mm_liker
       coord_flip(ylim = range(scale_lab))
   }
 }
+
+
 
 ## Appendices Bars and Tiles -----
 
@@ -234,3 +230,55 @@ dbl_output <- function(variable) {
   )
 }
 
+
+#' Appendix B
+#'
+#' @param variables variables included in the heatmap
+#' @param scale_ What scale should be used. Default is "mm_likert_scale"
+#'
+#' @examples appendix_b("sp_plan")
+appendix_b <- function(variables, scale_ = "mm_likert_scale") {
+
+  scale_lab <- df_definitions$options[which(df_definitions$type == "scale" & df_definitions$id == scale_)][[1]][[1]]
+  names(scale_lab) <- df_definitions$options[which(df_definitions$type == "scale" & df_definitions$id == scale_)][[1]][[2]]
+
+
+  basicdf <-
+    df_responses %>%
+    select(participant_name, variables) %>%
+    mutate_at(vars(variables), ~as.numeric(.)) %>%
+    pivot_longer(cols =variables, names_to = "question", values_to = 'score') %>%
+    left_join(., df_definitions[c('id','text')], by = c('question' = 'id')) %>%
+    mutate(question = sub(":", "\n", text)) %>%
+    select(-text)
+
+  basic_part <-
+    basicdf %>%
+    group_by(participant_name) %>%
+    summarise(score = round(mean(score, na.rm = TRUE), digits = 1)) %>%
+    mutate(question = "Participant Average")
+
+  basic_question <-
+    basicdf %>%
+    group_by(question) %>%
+    summarise(score = round(mean(score, na.rm = TRUE), digits = 1)) %>%
+    mutate(participant_name = "Question Average")
+
+  rbind(basicdf, basic_part, basic_question) %>%
+    mutate(question = ordered(question,
+                              levels = append("Participant Average", unique(basicdf$question))),
+           participant_name = ordered(participant_name,
+                                      levels = append(unique(df_responses$participant_name), "Question Average"))) %>%
+    ggplot() +
+    geom_tile(aes(x = question, y = participant_name, fill = score), color = "black") +
+    geom_text(aes(x = question, y = participant_name, label = score)) +
+    scale_x_discrete(breaks = append("Participant Average", unique(basicdf$question))) +
+    scale_y_discrete(labels = function(x) str_wrap(x, width = 5)) +
+    mm_theme() +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5),
+          axis.text.y = element_text(hjust = 1),
+          panel.grid = element_blank(),
+          legend.position = "bottom") +
+    scale_fill_mm(discrete = F, palette = "scale", breaks = scale_lab, labels = replace_na(names(scale_lab), "")) +
+    coord_flip()
+}
