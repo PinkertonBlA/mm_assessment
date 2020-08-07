@@ -34,6 +34,46 @@ readin <- function(path="/home/kent/Contracts/missionmet/mm-assessor/survey_monk
 
 # Functions -----
 
+## Color Palettes -----
+
+mm_colors <-  c(b_connect = "#58B7C1",
+                b_execute = "#01476B",
+                b_vision = "#657072",
+                r_adrift = "#BC3C35",
+                y_caution = "#F5D50C",
+                g_pace = "#98BB60",
+                gr_pending = "#C4CED4")
+
+mm_cols <- function(...) {
+  cols <- c(...)
+
+  if (is.null(cols))
+    return(mm_colors)
+
+  mm_colors[cols]
+}
+
+mm_palettes = list(analogous = mm_cols("b_connect", "b_execute", "b_vision"),
+                   scale = mm_cols("b_pending", 'b_execute'))
+
+mm_pal <- function(palette = "analogous", reverse = FALSE, ...) {
+  pal <- mm_palettes[[palette]]
+
+  if (reverse) pal <- rev(pal)
+
+  colorRampPalette(pal, ...)
+}
+
+scale_fill_mm <- function(palette = "analogous", discrete = TRUE, reverse = FALSE, ...) {
+  pal <- mm_pal(palette = palette, reverse = reverse)
+
+  if (discrete) {
+    discrete_scale("fill", paste0("mm_", palette), palette = pal, ...)
+  } else {
+    scale_fill_gradientn(colours = pal(256), ...)
+  }
+}
+
 ## Plot Themes -----
 
 #' Theme for ggplot graphical outputs. Styles are overridden by calls from individual functions.
@@ -72,7 +112,7 @@ swot_by_role<- function(swot_cat_) {
   paste0(
     htmltools::h2(df_definitions$text[which(str_detect(df_definitions$text, str_to_upper(swot_cat_)))][1]),
     swot %>%
-      filter(cat == swot_cat_) %>%
+      dplyr::filter(cat == swot_cat_) %>%
       select(-cat, -swot) %>%
       arrange(participant_role) %>%
       kable(col.names = c("Role", "Name", "Rank", "Response")) %>%
@@ -202,17 +242,25 @@ tiles <- function(variable, scale_ = "mm_likert_scale") {
   scale_lab <- df_definitions$options[which(df_definitions$type == "scale" & df_definitions$id == scale_)][[1]][[1]]
   names(scale_lab) <- replace_na(df_definitions$options[which(df_definitions$type == "scale" & df_definitions$id == scale_)][[1]][[2]], " ")
 
+  df_responses[[variable]] <- ordered(df_responses[[variable]], levels = scale_lab, labels = scale_lab)
+
   # Plots
 
   ggplot(data = df_responses,
          aes(x = participant_name,
              y = str_wrap(participant_role, 5),
-             fill = as.character(.data[[variable]]))) +
+             fill = .data[[variable]])) +
     geom_tile() +
     mm_theme() +
-    scale_fill_mm(discrete = TRUE, breaks = scale_lab, labels = paste(scale_lab, names(scale_lab))) +
+    scale_fill_mm(discrete = TRUE,
+                  reverse = TRUE,
+                  guide = guide_legend(reverse = TRUE),
+                  breaks = scale_lab,
+                  labels = names(scale_lab),
+                  drop = FALSE) +
     coord_flip()
 }
+
 
 #' Plots bars and tiles side by side with title centered above both plots
 #'
@@ -224,12 +272,12 @@ dbl_output <- function(variable) {
   p2 <- tiles(variable)
 
   print(
-    ggpubr::annotate_figure(top = df_definitions$subtext[which(variable == df_definitions$id)],
+    ggpubr::annotate_figure(top = ggpubr::text_grob(df_definitions$subtext[which(variable == df_definitions$id)],
+                            family = 'Raleway', color = mm_colors['b_vision']),
                             ggpubr::ggarrange(p1, p2, ncol = 2, common.legend = FALSE)
     )
   )
 }
-
 
 #' Appendix B
 #'
