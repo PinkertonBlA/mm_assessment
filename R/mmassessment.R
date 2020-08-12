@@ -95,31 +95,31 @@ swot_order <- c("strengths", "weaknesses", "opportunities", "threats", "prioriti
 
 #' SWOT Tables
 #'
-#' @param swot_cat_ category of the swot item. strengths, weaknesses, opportunities, threats. Will search for the name in the response variable names.
-swot_by_role<- function(swot_cat_) {
+#' @param pivot_value the naming convention that will be searched for in varibale names for conversion from wide to long format
+#' @param value_name the name of the specfic value for the table to be generated
+#' @param roles_id a definitions id value that indexes the order of the organization roles i.e. "chamber_roles"
+#'
+#' @example pivot_table_by("swot", "strengths", "chamber_roles")
+pivot_table_by <- function(pivot_value, value_name, roles_id) {
 
-  swot_vars <- names(df_responses)[which(str_ends(names(df_responses), "\\d") & str_starts(names(df_responses), "swot_"))]
+  vars_ <- names(df_responses)[which(str_ends(names(df_responses), "\\d") & str_starts(names(df_responses), pivot_value))]
 
-  roles_order <- unlist(df_definitions$options[which(df_definitions$id=="chamber_roles")][[1]][1])
+  roles_order <- unlist(df_definitions$options[which(df_definitions$id==roles_id)][[1]][1])
 
   swot <-
     df_responses %>%
-    select(participant_role, participant_name, swot_vars) %>%
-    mutate(participant_role = ordered(participant_role, levels = roles_order)) %>%
-    pivot_longer(cols = starts_with("swot_"), names_to = "swot", values_to = "swot_char") %>%
-    separate(col = "swot", into = c("swot", "cat", "rank"), sep = "_")
+    dplyr::select(participant_role, participant_name, vars_) %>%
+    dplyr::mutate(participant_role = ordered(participant_role, levels = roles_order)) %>%
+    pivot_longer(cols = starts_with(pivot_value), names_to = pivot_value, values_to = value_name) %>%
+    separate(col = pivot_value, into = c("pivot", "name_", "rank"), sep = "_")
 
-  paste0(
-    htmltools::h2(df_definitions$text[which(str_detect(df_definitions$text, str_to_upper(swot_cat_)))][1]),
     swot %>%
-      dplyr::filter(cat == swot_cat_) %>%
-      select(-cat, -swot) %>%
-      arrange(participant_role) %>%
+      dplyr::filter(name_ == value_name) %>%
+      dplyr::select(-pivot, -name_) %>%
+      dplyr::arrange(participant_role) %>%
       kable(col.names = c("Role", "Name", "Rank", "Response")) %>%
       kable_styling() %>%
-      collapse_rows(1:2, valign = "top"),
-    "\\pagebreak"
-  )
+      collapse_rows(1:2, valign = "top")
 }
 
 #' Write tables of text
