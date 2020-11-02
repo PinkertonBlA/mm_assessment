@@ -99,9 +99,10 @@ swot_order <- c("strengths", "weaknesses", "opportunities", "threats", "prioriti
 #' @param pivot_value the naming convention that will be searched for in varibale names for conversion from wide to long format
 #' @param value_name the name of the specfic value for the table to be generated
 #' @param roles_id a definitions id value that indexes the order of the organization roles i.e. "chamber_roles"
+#' @param page_rows the number of rows to print per page
 #'
 #' @example pivot_table_by("swot", "strengths", "chamber_roles")
-pivot_table_by <- function(pivot_value, value_name, roles_id) {
+pivot_table_by <- function(pivot_value, value_name, roles_id, page_rows = 32) {
 
   vars_ <- names(df_responses)[which(str_ends(names(df_responses), "\\d") & str_starts(names(df_responses), pivot_value))]
 
@@ -114,17 +115,19 @@ pivot_table_by <- function(pivot_value, value_name, roles_id) {
     pivot_longer(cols = starts_with(pivot_value), names_to = pivot_value, values_to = value_name) %>%
     separate(col = pivot_value, into = c("pivot", "name_", "rank"), sep = "_")
 
-  swot %>%
-    dplyr::filter(name_ == value_name) %>%
-    dplyr::select(-pivot, -name_) %>%
-    dplyr::arrange(participant_role) %>%
-    dplyr::group_by(grp = ceiling(row_number()/30)) %>%
-    dplyr::summarise(tables = list(
-      kable(dplyr::cur_data(), col.names = c("Role", "Name", "Rank", "Response")) %>%
-        kable_styling(repeat_header_method = "append") %>%
-        collapse_rows(1:2, valign = "top"))) %>%
-    select(tables) %>%
-    unlist()
+  tabs <-
+    swot %>%
+      dplyr::filter(name_ == value_name) %>%
+      dplyr::select(-pivot, -name_) %>%
+      dplyr::arrange(participant_role) %>%
+      dplyr::group_by(grp = ceiling(row_number()/page_rows)) %>%
+      dplyr::summarise(tables = list(
+        kable(dplyr::cur_data(), col.names = c("Role", "Name", "Rank", "Response")) %>%
+          kable_styling() %>%
+          collapse_rows(1:2, valign = "top"))) %>%
+      select(tables)
+
+  invisible(lapply(tabs$tables, cat))
 }
 
 #' Write tables of text
@@ -139,14 +142,13 @@ pivot_table_by <- function(pivot_value, value_name, roles_id) {
 mm_textTable <- function(variables, names_=variables, collapse_columns=1, page_rows = 20) {
   tabs <-
     df_responses %>%
-      dplyr::group_by(grp = ceiling(row_number()/page_rows)) %>%
-      summarise(tables = list(
-        cur_data() %>%
-          select(variables) %>%
-          kable(col.names = names_) %>%
-          kable_styling(repeat_header_method = "append") %>%
-          collapse_rows(collapse_columns, valign = "top"))) %>%
-      select(tables)
+    select(variables) %>%
+    dplyr::group_by(grp = ceiling(row_number()/page_rows)) %>%
+    summarise(tables = list(
+      kable(cur_data(), col.names = names_) %>%
+        kable_styling(repeat_header_method = "append") %>%
+        collapse_rows(collapse_columns, valign = "top"))) %>%
+    select(tables)
 
   invisible(lapply(tabs$tables, cat))
 }
