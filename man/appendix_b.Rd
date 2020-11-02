@@ -4,12 +4,14 @@
 \alias{appendix_b}
 \title{Appendix B}
 \usage{
-appendix_b(variables, scale_ = "mm_likert_scale")
+appendix_b(variables, scale_ = "mm_likert_scale", participant_chunks)
 }
 \arguments{
 \item{variables}{variables included in the heatmap}
 
 \item{scale_}{What scale should be used. Default is "mm_likert_scale"}
+
+\item{participant_chunks}{}
 }
 \description{
 Appendix B

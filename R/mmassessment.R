@@ -82,6 +82,7 @@ mm_theme <- function() {theme_minimal(base_size = 12) +
     theme(text = element_text(family = "Raleway"),
           panel.grid.minor = element_blank(),
           panel.grid.major.x = element_blank(),
+          axis.text = element_text(family = "Raleway"),
           axis.title.x = element_blank(),
           axis.title.y = element_blank(),
           legend.title = element_blank())
@@ -113,13 +114,17 @@ pivot_table_by <- function(pivot_value, value_name, roles_id) {
     pivot_longer(cols = starts_with(pivot_value), names_to = pivot_value, values_to = value_name) %>%
     separate(col = pivot_value, into = c("pivot", "name_", "rank"), sep = "_")
 
-    swot %>%
-      dplyr::filter(name_ == value_name) %>%
-      dplyr::select(-pivot, -name_) %>%
-      dplyr::arrange(participant_role) %>%
-      kable(col.names = c("Role", "Name", "Rank", "Response")) %>%
-      kable_styling() %>%
-      collapse_rows(1:2, valign = "top")
+  swot %>%
+    dplyr::filter(name_ == value_name) %>%
+    dplyr::select(-pivot, -name_) %>%
+    dplyr::arrange(participant_role) %>%
+    dplyr::group_by(grp = ceiling(row_number()/30)) %>%
+    dplyr::summarise(tables = list(
+      kable(dplyr::cur_data(), col.names = c("Role", "Name", "Rank", "Response")) %>%
+        kable_styling(repeat_header_method = "append") %>%
+        collapse_rows(1:2, valign = "top"))) %>%
+    select(tables) %>%
+    unlist()
 }
 
 #' Write tables of text
@@ -127,15 +132,23 @@ pivot_table_by <- function(pivot_value, value_name, roles_id) {
 #' @param variables variables from 'df_responses' data to include in the table single or list
 #' @param names human readable names for the table headers single or list
 #' @param collapse_columns numeric vector of columns to collapse ex: 1, 1:2, c(1, 2, 4)
+#' @param page_rows number of rows to print on each page per table.
 #'
 #' @return outputs kable table
 #' @examples mm_textTable(c('participant_role', 'participant_name'), c("Role", "Name"), 1)
-mm_textTable <- function(variables, names_=variables, collapse_columns=1) {
-  df_responses %>%
-    select(variables) %>%
-    kable(col.names = names_) %>%
-    kable_styling() %>%
-    collapse_rows(collapse_columns, valign = "top")
+mm_textTable <- function(variables, names_=variables, collapse_columns=1, page_rows = 20) {
+  tabs <-
+    df_responses %>%
+      dplyr::group_by(grp = ceiling(row_number()/page_rows)) %>%
+      summarise(tables = list(
+        cur_data() %>%
+          select(variables) %>%
+          kable(col.names = names_) %>%
+          kable_styling(repeat_header_method = "append") %>%
+          collapse_rows(collapse_columns, valign = "top"))) %>%
+      select(tables)
+
+  invisible(lapply(tabs$tables, cat))
 }
 
 ## Summary Graphs -----
@@ -283,9 +296,10 @@ dbl_output <- function(variable) {
 #'
 #' @param variables variables included in the heatmap
 #' @param scale_ What scale should be used. Default is "mm_likert_scale"
+#' @param participant_chunks
 #'
 #' @examples appendix_b("sp_plan")
-appendix_b <- function(variables, scale_ = "mm_likert_scale") {
+appendix_b <- function(variables, scale_ = "mm_likert_scale", participant_chunks) {
 
   scale_lab <- df_definitions$options[which(df_definitions$type == "scale" & df_definitions$id == scale_)][[1]][[1]]
   names(scale_lab) <- df_definitions$options[which(df_definitions$type == "scale" & df_definitions$id == scale_)][[1]][[2]]
@@ -293,6 +307,7 @@ appendix_b <- function(variables, scale_ = "mm_likert_scale") {
 
   basicdf <-
     df_responses %>%
+    slice(participant_chunks) %>%
     select(participant_name, variables) %>%
     mutate_at(vars(variables), ~as.numeric(.)) %>%
     pivot_longer(cols =variables, names_to = "question", values_to = 'score') %>%
