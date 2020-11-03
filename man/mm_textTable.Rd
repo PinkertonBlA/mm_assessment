@@ -8,17 +8,20 @@ mm_textTable(
   variables,
   names_ = variables,
   collapse_columns = 1,
+  arrange_columns = 1,
   page_rows = 20
 )
 }
 \arguments{
-\item{variables}{variables from 'df_responses' data to include in the table single or list}
+\item{variables}{variables from 'df_responses' data to include in the table single or list. Order given will be order of table variabales}
+
+\item{names_}{human readable names for the table headers single or list}
 
 \item{collapse_columns}{numeric vector of columns to collapse ex: 1, 1:2, c(1, 2, 4)}
 
 \item{page_rows}{number of rows to print on each page per table.}
 
-\item{names}{human readable names for the table headers single or list}
+\item{arrange_column}{numeric vector of columns by which to arrange ex: 1, 1:2, c(1, 2, 4)}
 }
 \value{
 outputs kable table

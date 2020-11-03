@@ -119,7 +119,7 @@ pivot_table_by <- function(pivot_value, value_name, roles_id, page_rows = 32) {
     swot %>%
       dplyr::filter(name_ == value_name) %>%
       dplyr::select(-pivot, -name_) %>%
-      dplyr::arrange(participant_role) %>%
+      dplyr::arrange(participant_role, rank) %>%
       dplyr::group_by(grp = ceiling(row_number()/page_rows)) %>%
       dplyr::summarise(tables = list(
         kable(dplyr::cur_data(), col.names = c("Role", "Name", "Rank", "Response")) %>%
@@ -132,17 +132,19 @@ pivot_table_by <- function(pivot_value, value_name, roles_id, page_rows = 32) {
 
 #' Write tables of text
 #'
-#' @param variables variables from 'df_responses' data to include in the table single or list
-#' @param names human readable names for the table headers single or list
+#' @param variables variables from 'df_responses' data to include in the table single or list. Order given will be order of table variabales
+#' @param names_ human readable names for the table headers single or list
 #' @param collapse_columns numeric vector of columns to collapse ex: 1, 1:2, c(1, 2, 4)
+#' @param arrange_column numeric vector of columns by which to arrange ex: 1, 1:2, c(1, 2, 4)
 #' @param page_rows number of rows to print on each page per table.
 #'
 #' @return outputs kable table
 #' @examples mm_textTable(c('participant_role', 'participant_name'), c("Role", "Name"), 1)
-mm_textTable <- function(variables, names_=variables, collapse_columns=1, page_rows = 20) {
+mm_textTable <- function(variables, names_=variables, collapse_columns=1, arrange_columns=1, page_rows=20) {
   tabs <-
     df_responses %>%
     select(variables) %>%
+    arrange(cur_data()[,arrange_columns]) %>%
     dplyr::group_by(grp = ceiling(row_number()/page_rows)) %>%
     summarise(tables = list(
       kable(cur_data(), col.names = names_) %>%
