@@ -300,10 +300,10 @@ dbl_output <- function(variable) {
 #'
 #' @param variables variables included in the heatmap
 #' @param scale_ What scale should be used. Default is "mm_likert_scale"
-#' @param participant_chunks
+#' @param page_rows Using same syntax as table outputs, page_rows determines how many rows of responses (respondents) will be included before a new table is rendered.
 #'
 #' @examples appendix_b("sp_plan")
-appendix_b <- function(variables, scale_ = "mm_likert_scale", participant_chunks) {
+appendix_b <- function(variables, scale_ = "mm_likert_scale", page_rows = 20) {
 
   scale_lab <- df_definitions$options[which(df_definitions$type == "scale" & df_definitions$id == scale_)][[1]][[1]]
   names(scale_lab) <- df_definitions$options[which(df_definitions$type == "scale" & df_definitions$id == scale_)][[1]][[2]]
@@ -311,7 +311,6 @@ appendix_b <- function(variables, scale_ = "mm_likert_scale", participant_chunks
 
   basicdf <-
     df_responses %>%
-    slice(participant_chunks) %>%
     select(participant_name, variables) %>%
     mutate_at(vars(variables), ~as.numeric(.)) %>%
     pivot_longer(cols =variables, names_to = "question", values_to = 'score') %>%
@@ -331,21 +330,30 @@ appendix_b <- function(variables, scale_ = "mm_likert_scale", participant_chunks
     summarise(score = round(mean(score, na.rm = TRUE), digits = 1)) %>%
     mutate(participant_name = "Question Average")
 
-  rbind(basicdf, basic_part, basic_question) %>%
-    mutate(question = ordered(question,
-                              levels = append("Participant Average", unique(basicdf$question))),
-           participant_name = ordered(participant_name,
-                                      levels = append(unique(df_responses$participant_name), "Question Average"))) %>%
-    ggplot() +
-    geom_tile(aes(x = question, y = participant_name, fill = score), color = "black") +
-    geom_text(aes(x = question, y = participant_name, label = score)) +
-    scale_x_discrete(breaks = append("Participant Average", unique(basicdf$question))) +
-    scale_y_discrete(labels = function(x) str_wrap(x, width = 5)) +
-    mm_theme() +
-    theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5),
-          axis.text.y = element_text(hjust = 1),
-          panel.grid = element_blank(),
-          legend.position = "bottom") +
-    scale_fill_mm(discrete = F, palette = "scale", breaks = scale_lab, labels = replace_na(names(scale_lab), "")) +
-    coord_flip()
+  tabs <-
+    rbind(basicdf, basic_part, basic_question) %>%
+      mutate(question = ordered(question,
+                                levels = append("Participant Average", unique(basicdf$question))),
+             participant_name = ordered(participant_name,
+                                        levels = append(unique(df_responses$participant_name), "Question Average"))) %>%
+      dplyr::group_by(grp = ceiling(row_number()/(page_rows*length(variables)))) %>%
+      dplyr::summarise(graphs = list(
+        ggplot(data = cur_data()) +
+        geom_tile(aes(x = question, y = participant_name, fill = score), color = "black") +
+        geom_text(aes(x = question, y = participant_name, label = score)) +
+        scale_x_discrete(breaks = append("Participant Average", unique(basicdf$question))) +
+        scale_y_discrete(labels = function(x) str_wrap(x, width = 5)) +
+        mm_theme() +
+        theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5),
+              axis.text.y = element_text(hjust = 1),
+              panel.grid = element_blank(),
+              legend.position = "bottom") +
+        scale_fill_mm(discrete = F, palette = "scale", breaks = scale_lab, labels = replace_na(names(scale_lab), "")) +
+        coord_flip()
+        )
+        ) %>%
+        select(graphs)
+
+      invisible(lapply(tabs$graphs, print))
 }
+

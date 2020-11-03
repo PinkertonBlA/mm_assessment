@@ -4,14 +4,14 @@
 \alias{appendix_b}
 \title{Appendix B}
 \usage{
-appendix_b(variables, scale_ = "mm_likert_scale", participant_chunks)
+appendix_b(variables, scale_ = "mm_likert_scale", page_rows = 20)
 }
 \arguments{
 \item{variables}{variables included in the heatmap}
 
 \item{scale_}{What scale should be used. Default is "mm_likert_scale"}
 
-\item{participant_chunks}{}
+\item{page_rows}{Using same syntax as table outputs, page_rows determines how many rows of responses (respondents) will be included before a new table is rendered.}
 }
 \description{
 Appendix B
