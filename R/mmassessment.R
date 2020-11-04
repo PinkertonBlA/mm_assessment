@@ -303,7 +303,7 @@ dbl_output <- function(variable) {
 #' @param page_rows Using same syntax as table outputs, page_rows determines how many rows of responses (respondents) will be included before a new table is rendered.
 #'
 #' @examples appendix_b("sp_plan")
-appendix_b <- function(variables, scale_ = "mm_likert_scale", page_rows = 20) {
+appendix_b <- function(variables, scale_ = "mm_likert_scale", page_rows = 15) {
 
   scale_lab <- df_definitions$options[which(df_definitions$type == "scale" & df_definitions$id == scale_)][[1]][[1]]
   names(scale_lab) <- df_definitions$options[which(df_definitions$type == "scale" & df_definitions$id == scale_)][[1]][[2]]
@@ -350,7 +350,10 @@ appendix_b <- function(variables, scale_ = "mm_likert_scale", page_rows = 20) {
               axis.text.y = element_text(hjust = 1),
               panel.grid = element_blank(),
               legend.position = "bottom") +
-        scale_fill_mm(discrete = F, palette = "scale", breaks = scale_lab, labels = replace_na(names(scale_lab), "")) +
+        scale_fill_mm(discrete = F, palette = "scale",
+                      limits = c(min(scale_lab), max(scale_lab)),
+                      breaks = seq(min(scale_lab), max(scale_lab),1),
+                      labels = replace_na(names(scale_lab), "")) +
         coord_flip()
     )
     ) %>%
