@@ -68,7 +68,7 @@ scale_fill_mm <- function(palette = "analogous", discrete = TRUE, reverse = FALS
   pal <- mm_pal(palette = palette, reverse = reverse)
 
   if (discrete) {
-    discrete_scale("fill", paste0("mm_", palette), palette = pal, ...)
+    discrete_scale("fill", paste0("mm_", palette), palette = pal, drop = FALSE, ...)
   } else {
     scale_fill_gradientn(colours = pal(256), ...)
   }
@@ -331,14 +331,16 @@ appendix_b <- function(variables, scale_ = "mm_likert_scale", page_rows = 20) {
     mutate(participant_name = "Question Average")
 
   tabs <-
-    rbind(basicdf, basic_part, basic_question) %>%
-      mutate(question = ordered(question,
-                                levels = append("Participant Average", unique(basicdf$question))),
-             participant_name = ordered(participant_name,
-                                        levels = append(unique(df_responses$participant_name), "Question Average"))) %>%
-      dplyr::group_by(grp = ceiling(row_number()/(page_rows*length(variables)))) %>%
-      dplyr::summarise(graphs = list(
-        ggplot(data = cur_data()) +
+    basicdf %>%
+    mutate(question = ordered(question,
+                              levels = append("Participant Average", unique(basicdf$question))),
+           participant_name = ordered(participant_name,
+                                      levels = append(unique(df_responses$participant_name), "Question Average"))) %>%
+    rbind(., basic_part) %>%
+    arrange(participant_name, question) %>%
+    dplyr::group_by(grp = ceiling(row_number()/(page_rows*length(unique(question))))) %>%
+    dplyr::summarise(graphs = list(
+      ggplot(data = rbind(cur_data(), basic_question)) +
         geom_tile(aes(x = question, y = participant_name, fill = score), color = "black") +
         geom_text(aes(x = question, y = participant_name, label = score)) +
         scale_x_discrete(breaks = append("Participant Average", unique(basicdf$question))) +
@@ -350,10 +352,10 @@ appendix_b <- function(variables, scale_ = "mm_likert_scale", page_rows = 20) {
               legend.position = "bottom") +
         scale_fill_mm(discrete = F, palette = "scale", breaks = scale_lab, labels = replace_na(names(scale_lab), "")) +
         coord_flip()
-        )
-        ) %>%
-        select(graphs)
+    )
+    ) %>%
+    select(graphs)
 
-      invisible(lapply(tabs$graphs, print))
+  invisible(lapply(tabs$graphs, print))
 }
 
