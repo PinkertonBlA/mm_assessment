@@ -119,7 +119,7 @@ pivot_table_by <- function(pivot_value, value_name, roles_id, page_rows = 32) {
     swot %>%
       dplyr::filter(name_ == value_name) %>%
       dplyr::select(-pivot, -name_) %>%
-      dplyr::arrange(participant_role, rank) %>%
+      dplyr::arrange(participant_role, participant_name, rank) %>%
       dplyr::group_by(grp = ceiling(row_number()/page_rows)) %>%
       dplyr::summarise(tables = list(
         kable(dplyr::cur_data(), col.names = c("Role", "Name", "Rank", "Response")) %>%
